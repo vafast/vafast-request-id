@@ -20,14 +20,18 @@ npm install @vafast/request-id
 ### 基础用法
 
 ```typescript
-import { serve, defineRoutes, route, createHandler } from 'vafast'
+import { Server, defineRoutes, createHandler } from 'vafast'
 import { requestId, getRequestId } from '@vafast/request-id'
 
 const routes = defineRoutes([
-  route('GET', '/test', createHandler({}, async ({ req }) => {
-    const id = getRequestId(req)
-    return { requestId: id }
-  }))
+  {
+    method: 'GET',
+    path: '/test',
+    handler: createHandler({}, async ({ req }) => {
+      const id = getRequestId(req)
+      return { requestId: id }
+    })
+  }
 ])
 
 const app = new Server(routes)
