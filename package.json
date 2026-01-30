@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/request-id",
-	"version": "0.0.3",
+	"version": "0.1.0",
 	"description": "Request ID middleware plugin for Vafast framework",
 	"type": "module",
 	"author": "",
@@ -8,14 +8,14 @@
 		"type": "git",
 		"url": "https://github.com/vafast/vafast-request-id"
 	},
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
+	"main": "./dist/index.mjs",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs",
+			"default": "./dist/index.mjs"
 		}
 	},
 	"bugs": "https://github.com/vafast/vafast-request-id/issues",
