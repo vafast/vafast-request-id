@@ -1,114 +1,109 @@
 # @vafast/request-id
 
-为 Vafast 请求生成唯一标识符的中间件。
+为每个请求生成唯一 ID：写入 `req.id`、经 `next({ requestId })` 注入 handler，并回写响应头（默认 `X-Request-Id`）。
 
-## ✨ 特性
-
-- 🆔 自动生成 UUID v4 请求 ID
-- 🔗 支持分布式链路追踪（复用上游 ID）
-- ⚙️ 可自定义 ID 生成器
-- 📤 自动添加响应头
-
-## 📦 安装
+## 安装
 
 ```bash
 npm install @vafast/request-id
 ```
 
-## 🚀 使用
-
-### 基础用法
+## 快速开始
 
 ```typescript
-import { Server, defineRoutes, createHandler } from 'vafast'
+import { Server, defineRoute, defineRoutes, serve } from 'vafast'
 import { requestId, getRequestId } from '@vafast/request-id'
 
 const routes = defineRoutes([
-  {
+  defineRoute({
     method: 'GET',
-    path: '/test',
-    handler: createHandler({}, async ({ req }) => {
-      const id = getRequestId(req)
-      return { requestId: id }
-    })
-  }
+    path: '/',
+    handler: ({ requestId: id, req }) => ({
+      fromContext: id,
+      fromReq: req.id,
+      viaHelper: getRequestId(req),
+    }),
+  }),
 ])
 
-const app = new Server(routes)
-app.use(requestId())
-
-serve({ fetch: app.fetch, port: 3000 })
+const server = new Server(routes)
+server.use(requestId())
+serve({ fetch: server.fetch, port: 3000 })
 ```
 
-响应会自动包含 `X-Request-Id` 头：
+响应头示例：
 
 ```
-HTTP/1.1 200 OK
 X-Request-Id: 550e8400-e29b-41d4-a716-446655440000
 ```
+
+## 用法
 
 ### 自定义配置
 
 ```typescript
-import { requestId } from '@vafast/request-id'
-import { nanoid } from 'nanoid'
-
-// 使用 nanoid 生成更短的 ID
-app.use(requestId({
-  generator: () => nanoid(),
-  headerName: 'X-Correlation-Id'
-}))
-
-// 禁用复用已有 ID
-app.use(requestId({
-  useExisting: false
-}))
-
-// 从不同的请求头读取已有 ID
-app.use(requestId({
-  headerName: 'X-Request-Id',
-  existingHeaderName: 'X-Trace-Id'
-}))
+server.use(
+  requestId({
+    generator: () => `req-${Date.now()}`,
+    headerName: 'X-Correlation-Id',
+    useExisting: true,
+    existingHeaderName: 'X-Trace-Id',
+  }),
+)
 ```
 
-## 📚 API
+### 与 request-logger
+
+```typescript
+import { requestId } from '@vafast/request-id'
+import { requestLogger } from '@vafast/request-logger'
+
+server.use(requestId())
+server.use(
+  requestLogger({
+    url: process.env.LOG_INGEST_URL!,
+    service: 'my-server',
+  }),
+)
+```
+
+## API 完整参数
 
 ### `requestId(options?)`
 
-创建请求 ID 中间件。
-
-#### 选项
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `generator` | `() => string` | `crypto.randomUUID()` | ID 生成函数 |
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `generator` | `() => string` | `crypto.randomUUID()` | ID 生成器 |
 | `headerName` | `string` | `'X-Request-Id'` | 响应头名称 |
-| `useExisting` | `boolean` | `true` | 是否复用请求头中的 ID |
-| `existingHeaderName` | `string` | 同 `headerName` | 读取已有 ID 的请求头名称 |
+| `useExisting` | `boolean` | `true` | 复用入站请求头中的 ID |
+| `existingHeaderName` | `string` | 同 `headerName` | 读取已有 ID 的请求头 |
+
+行为：解析/生成 ID → `req.id = id` → `next({ requestId: id })` → 写入响应头。
 
 ### `getRequestId(req)`
 
-从请求对象获取 ID。
-
 ```typescript
-import { getRequestId } from '@vafast/request-id'
-
-const id = getRequestId(req) // string | undefined
+getRequestId(req: Request): string | undefined
 ```
 
-## 🔗 分布式追踪
+## 最佳实践
 
-在微服务架构中，请求 ID 可以跨服务传递：
+- 在 `request-logger` 等依赖追踪 ID 的中间件**之前**挂载
+- 微服务保持同一头名与 `useExisting: true`，贯通链路
+- 业务日志自行带上 `requestId`（`@vafast/logger` 不会自动注入）
 
-```
-Client → Gateway → Service A → Service B
-         ↓           ↓            ↓
-    X-Request-Id  复用 ID      复用 ID
-```
+## 注意事项
 
-上游服务的请求头会被自动复用，保持整条链路的追踪 ID 一致。
+- 会新建 `Response` 以设置响应头
+- 入站 ID 不做格式校验；网关侧应负责清洗
+- 本包只负责请求 ID，不是应用日志库
 
-## 📄 许可证
+## 相关链接
+
+- 文档：[`docs/middleware/request-id.md`](../vafast-doc/docs/middleware/request-id.md)
+- [@vafast/request-logger](https://www.npmjs.com/package/@vafast/request-logger)
+- [@vafast/logger](https://www.npmjs.com/package/@vafast/logger)
+
+## License
 
 MIT
-

@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/request-id",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Request ID middleware plugin for Vafast framework",
 	"type": "module",
 	"author": "",
